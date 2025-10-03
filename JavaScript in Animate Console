@@ -1,0 +1,673 @@
+//stops main timeline on frame 1
+this.stop();
+
+//BUTTON ONE CODE
+	//stops buttonOne timeline on frame 1
+this.buttonOne.stop();
+
+//Keeps value of "this" while inside the function. Or an arrow function
+//...can also be used " () => {}" )
+let _this = this;
+
+//Starts Score at Zero
+_this.currentScore = 0;
+_this.score.score_numbers.text = "000"; // make sure text starts as 0
+
+
+//Wiggle effect for wrong answer
+function wiggle(target) {
+  if (!target) return;
+
+  // Random delay before starting wiggle
+  let delay = Math.random() * 0; //300 originally // 0–300 ms
+
+  // Random wiggle amplitude
+  let amp = 5 + Math.random() * 15;//15 originally // between 5 and 20 px
+
+  // Random speed factor
+  let speed = 50 + Math.random() * 70//100 originally // 50–150 ms
+
+  createjs.Tween.get(target, { loop: false })
+    .wait(delay) // stagger start
+    .to({ x: target.x - amp }, speed)
+    .to({ x: target.x + amp }, speed * .9)
+    .to({ x: target.x - amp * 0.75 }, speed * .9)
+    .to({ x: target.x + amp * 0.5 }, speed * .9)
+    .to({ x: target.x }, speed);
+}
+
+//Reset Function 
+function resetApp() {
+  createjs.Sound.stop();
+  createjs.Tween.removeAllTweens();
+
+  isRotating = false;
+  rotationSpeed = 0;
+  isButtonTwoPressed = false;
+
+  _this.buttonOne.gotoAndStop("star_idle");
+  _this.buttonTwo.bolt_box.rotation = 0;
+
+  // ⬇️ just reset instantly — no reverse ticker that can fight your click
+  _this.query_Bot.gotoAndStop(0);
+
+  _this.buttonThree.mouseEnabled = true;
+  
+  if (_this.answeredQuestions.q1 || 
+	  _this.answeredQuestions.q2 || 
+      _this.answeredQuestions.q3 === false) {
+    _this.buttonThree.gotoAndStop("play_again");
+  } else {
+    _this.buttonThree.gotoAndStop("robot_idle");
+  }
+
+  
+
+  _this.query_Bot.opLights.gotoAndStop(0);
+  _this.query_Bot.opLights.visible = true;
+  _this.query_Bot.wrongEffect.gotoAndStop(0);
+  _this.query_Bot.scoreBrackets.gotoAndStop(0);
+  _this.score.gotoAndStop(0);
+  Object.assign(_this.score.score_numbers, {text: "«000»", color: "#FFFFFF"});
+
+  
+  _this.qBox.gotoAndStop(0);
+
+  _this.answButton_1.gotoAndStop(0);
+  _this.answButton_2.gotoAndStop(0);
+  _this.answButton_3.gotoAndStop(0);
+  _this.answButton_4.gotoAndStop(0);
+
+  _this.answButton_1.visible = _this.answButton_2.visible = true;
+  _this.answButton_3.visible = _this.answButton_4.visible = true;
+
+  _this.answButton_1.mouseEnabled = _this.answButton_2.mouseEnabled = true;
+  _this.answButton_3.mouseEnabled = _this.answButton_4.mouseEnabled = true;
+
+  _this.answButton_1.answer_1_text.text = "24";
+  _this.answButton_2.answer_2_text.text = "24";
+  _this.answButton_3.answer_3_text.text = "24";
+  _this.answButton_4.answer_4_text.text = "24";
+
+  blurFilter.blurX = blurFilter.blurY = 0;
+  _this.buttonTwo.bolt_box.updateCache();
+  
+  _this.answerKey = {
+  answButton_1: false,
+  answButton_2: false,
+  answButton_3: false,
+  answButton_4: true
+  };
+
+_this.currentScore = 0;
+_this.score.score_numbers.text = "000";
+  
+}
+
+
+// PLAY animation on press
+  //higher-scoped start_audio variable
+  _this.startAudioInstance = null;
+  _this.q1WA = null;
+  _this.q1RA = null;
+  _this.pressInstance1 = null;
+  _this.wrongFlash.compositeOperation = "difference";
+
+// loading BigSqureDot Font
+function applyFontStyles() {
+  _this.qBox.wrongCaps.font = "60px 'BigSquareDots'";
+  _this.qBox.corrCaps.font = "47px 'BigSquareDots'";
+  _this.questionTitle.font = "21px 'BigSquareDots'";
+}
+// Call the function after a short delay
+setTimeout(applyFontStyles, 100); 
+
+// Answer key for Question 1 (only button 4 is correct)
+_this.answerKey = {
+  answButton_1: false,
+  answButton_2: false,
+  answButton_3: false,
+  answButton_4: true
+};
+//Answer Key Correctness Tracker 
+_this.answeredQuestions = {
+  q1: false,
+  q2: false,
+  q3: false
+};
+
+//WRONG ANSWER FUNCTION
+function handleWrongAnswer(button) {
+    button.gotoAndStop("_W"); 
+    button.mouseEnabled = false;
+    // Hide other buttons
+    [_this.answButton_1, _this.answButton_2, _this.answButton_3, _this.answButton_4]
+      .forEach(b => { if (b !== button) b.visible = false; });
+	_this.query_Bot.gotoAndStop("wrong_lights");
+	_this.qBox.gotoAndStop("qBox_Wrong");
+  	// Initiate wrongFlash animation
+	_this.wrongFlash.gotoAndPlay("loop");
+	// Wiggle *all* children of the main timeline
+    _this.children.forEach(child => wiggle(child));
+    // 🔊 Play wrong buzzer
+    let wrongInstance = createjs.Sound.play("wrongBuzzer");
+    Object.assign(_this.score.score_numbers, {text: "XXX", color: "#780000"});
+    // Wrong Answer Audio transition and Speaking animation completion
+    if ( _this.answerKey.answButton_4 == true) {
+		wrongInstance.on("complete", () => {
+          _this.q1WA = createjs.Sound.play("q1_WA");
+          _this.query_Bot.opLights.visible = true;
+          _this.query_Bot.gotoAndStop("operating_lights");
+		  _this.wrongFlash.gotoAndStop(0);
+          _this.q1WA.on("complete", () => {
+			resetApp();
+			});
+         });
+    }
+    else if (_this.answerKey.answButton_1 == true){
+	    wrongInstance.on("complete", () => {
+          _this.q1WA = createjs.Sound.play("q2_WA");
+          _this.query_Bot.opLights.visible = true;
+          _this.query_Bot.gotoAndStop("operating_lights");
+		  _this.wrongFlash.gotoAndStop(0);
+          _this.q1WA.on("complete", () => {
+			resetApp();
+			});
+         });
+    }
+    else if (_this.answerKey.answButton_2 == true){
+	    wrongInstance.on("complete", () => {
+          _this.q1WA = createjs.Sound.play("q3_WA");
+          _this.query_Bot.opLights.visible = true;
+          _this.query_Bot.gotoAndStop("operating_lights");
+		  _this.wrongFlash.gotoAndStop(0);
+          _this.q1WA.on("complete", () => {
+			resetApp();
+			});
+         });
+    }
+}
+//CORRECT ANSWER FUNCTION 
+function handleCorrectAnswer(button) {
+    button.gotoAndStop("_R");
+    button.mouseEnabled = false;
+	_this.correct_effect.gotoAndPlay("play");
+    // Hide other buttons
+    [_this.answButton_1, _this.answButton_2, _this.answButton_3, _this.answButton_4]
+      .forEach(b => { if (b !== button) b.visible = false; });
+    // ✅ Correct answer Audio and Speaking Animation initiation
+    _this.query_Bot.gotoAndStop("right_lights");
+    _this.qBox.gotoAndStop("qBox_Right");
+    let pressInstance2 = createjs.Sound.play("correctBuzzer");
+    // ✅ Increment score 
+    _this.currentScore += 100;
+    _this.score.score_numbers.text = _this.currentScore.toString();
+    _this.score.score_numbers.color = "#FFFFFF";
+    // Right Answer Audio transition and Speaking animation completion
+     if ( _this.answerKey.answButton_4 == true) {
+	     pressInstance2.on("complete", () => {
+          _this.q1RA = createjs.Sound.play("q1_RA");
+          _this.query_Bot.opLights.visible = true;
+          _this.query_Bot.gotoAndStop("operating_lights");
+          _this.q1RA.on("complete", () => {
+            _this.query_Bot.opLights.visible = false;
+            _this.q1RA = null;
+            });
+		});
+    }
+    else if (_this.answerKey.answButton_1 == true){
+		pressInstance2.on("complete", () => {
+          _this.q1RA = createjs.Sound.play("q2_RA");
+          _this.query_Bot.opLights.visible = true;
+          _this.query_Bot.gotoAndStop("operating_lights");
+          _this.q1RA.on("complete", () => {
+            _this.query_Bot.opLights.visible = false;
+            _this.q1RA = null;
+            });
+		});
+	}
+	else if (_this.answerKey.answButton_2 == true){
+	    pressInstance2.on("complete", () => {
+          _this.q1RA = createjs.Sound.play("q3_RA");
+          _this.query_Bot.opLights.visible = true;
+          _this.query_Bot.gotoAndStop("operating_lights");
+		  _this.wrongFlash.gotoAndStop(0);
+          _this.q1RA.on("complete", () => {
+			resetApp();
+			});
+         });
+   }
+   // Initiate Next Button for Correct Answer on Questions 1 & 2. 
+    if ( _this.answerKey.answButton_4 == true) {
+		_this.next_button.gotoAndPlay("next_start");
+	}
+    else if (_this.answerKey.answButton_1 == true){
+		_this.next_button.gotoAndPlay("next_start");
+	}
+   // Update Answer Key for correctness Tracker
+	if (_this.answerKey.answButton_4 === true) {
+		_this.answeredQuestions.q1 = true; // Q1 was correct
+	}
+	else if (_this.answerKey.answButton_1 === true) {
+		_this.answeredQuestions.q2 = true; // Q2 was correct
+	}
+	else if (_this.answerKey.answButton_2 === true) {
+		_this.answeredQuestions.q3 = true; // Q3 was correct
+	}
+
+}
+// QUESTION TWO FUNCTION 
+function QuestionTwo (button){
+  //Update Answer Key
+  _this.answerKey = {
+  answButton_1: true,
+  answButton_2: false,
+  answButton_3: false,
+  answButton_4: false
+  };
+  //Hide Next Button
+  _this.next_button.gotoAndStop("next_blank");
+  //Initiate Question2 Audio
+  _this.q2Sound = createjs.Sound.play("question2");
+  //Show query_Bot lights when audio is playing
+  _this.query_Bot.opLights.visible = true;
+  _this.query_Bot.opLights.play();
+  //Turn off query_Bot Lights when audio completes
+  _this.q2Sound.on("complete", () => {
+  _this.query_Bot.gotoAndStop("qB_idle");
+	_this.query_Bot.opLights.visible = false;
+	_this.query_Bot.opLights.stop();
+	});
+  // Move to qBox idle frame & Change qbox title and question text. 
+  _this.qBox.gotoAndStop("qBox_Idle");
+  _this.qBox.questionTitle.text = "QUESTION 2";
+  _this.qBox.question_text.text = "Which name is of a real dwarf planet in the Sol system?"
+  
+  _this.answButton_1.visible = _this.answButton_2.visible = true;
+  _this.answButton_3.visible = _this.answButton_4.visible = true;
+
+  _this.answButton_1.mouseEnabled = _this.answButton_2.mouseEnabled = true;
+  _this.answButton_3.mouseEnabled = _this.answButton_4.mouseEnabled = true;
+  // Move to idle frames of each Answer Button
+  _this.answButton_1.gotoAndStop("idle"); 
+  _this.answButton_2.gotoAndStop("idle"); 
+  _this.answButton_3.gotoAndStop("idle"); 
+  _this.answButton_4.gotoAndStop("idle");
+  // Change dynamic text of Answer Buttons
+  _this.answButton_1.answer_1_text.text = "[ Makemake ]";
+  _this.answButton_2.answer_2_text.text = "[ Edris ]";
+  _this.answButton_3.answer_3_text.text = "[ Kamehameha ]";
+  _this.answButton_4.answer_4_text.text = "[ Sedina ]"; 
+}
+
+// QUESTION THREE FUNCTION 
+function QuestionThree (button){
+  //Update Answer Key
+  _this.answerKey = {
+  answButton_1: false,
+  answButton_2: true,
+  answButton_3: false,
+  answButton_4: false
+  };
+  //Hide Next Button
+  _this.next_button.gotoAndStop("next_blank");
+  //Initiate Question2 Audio
+  _this.q2Sound = createjs.Sound.play("question3");
+  //Show query_Bot lights when audio is playing
+  _this.query_Bot.opLights.visible = true;
+  _this.query_Bot.opLights.play();
+  //Turn off query_Bot Lights when audio completes
+  _this.q2Sound.on("complete", () => {
+  _this.query_Bot.gotoAndStop("qB_idle");
+	_this.query_Bot.opLights.visible = false;
+	_this.query_Bot.opLights.stop();
+	});
+  // Move to qBox idle frame & Change qbox title and question text. 
+  _this.qBox.gotoAndStop("qBox_Idle");
+  _this.qBox.questionTitle.text = "QUESTION 3";
+  _this.qBox.question_text.text = "Which superhero first had the ability of flight?"
+  
+  _this.answButton_1.visible = _this.answButton_2.visible = true;
+  _this.answButton_3.visible = _this.answButton_4.visible = true;
+
+  _this.answButton_1.mouseEnabled = _this.answButton_2.mouseEnabled = true;
+  _this.answButton_3.mouseEnabled = _this.answButton_4.mouseEnabled = true;
+  // Move to idle frames of each Answer Button
+  _this.answButton_1.gotoAndStop("idle"); 
+  _this.answButton_2.gotoAndStop("idle"); 
+  _this.answButton_3.gotoAndStop("idle"); 
+  _this.answButton_4.gotoAndStop("idle");
+  // Change dynamic text of Answer Buttons
+  _this.answButton_1.answer_1_text.text = "[ The Spirit ]";
+  _this.answButton_2.answer_2_text.text = "[ The Submariner ]";
+  _this.answButton_3.answer_3_text.text = "[ Angel ]";
+  _this.answButton_4.answer_4_text.text = "[ Superman ]"; 
+}
+
+
+// Universal Button Press function
+ function handleDown(evt) {
+  console.log("Pressed", evt.currentTarget.name);
+
+	switch(evt.currentTarget) {
+	
+	//buttonOne
+	case _this.buttonOne:
+		 _this.buttonOne.gotoAndPlay("star_press");
+	break;
+	//__________________________________________________________________________________________
+	//buttonThree
+	case _this.buttonThree:
+    _this.buttonThree.gotoAndStop("robot_activate");
+    _this.buttonThree.mouseEnabled = false;
+	// Start query_Bot animation
+    _this.query_Bot.gotoAndPlay(0);
+	
+	// Play Sound Create the instance and assign it to the higher-scoped variable
+    _this.startAudioInstance = createjs.Sound.play("start_audio");
+	_this.startAudioInstance.on("complete", () => {
+	_this.query_Bot.opLights.stop();
+	_this.query_Bot.opLights.visible = false;
+	});
+		break;
+    //__________________________________________________________________________________________
+	// Start Button
+    case _this.query_Bot.scoreBrackets.start_button:
+	//Clear Start Button
+	_this.query_Bot.scoreBrackets.gotoAndStop("clearSTB");
+	// Stop start_audio
+        // >>>Check for the instance and stop it
+    if (_this.startAudioInstance) {
+        createjs.Sound.stop();
+        _this.startAudioInstance = null; // Clean up the instance reference
+        
+        // >>>Turn off opLights when audio is stopped early
+        _this.query_Bot.opLights.stop();
+        _this.query_Bot.opLights.visible = false;
+    }
+	//Move from startButton to Score screen
+	_this.score.gotoAndStop("score_ready");
+	_this.score.score_numbers.font = "55px BigSquareDots";
+
+    // Play first sound
+    let pressInstance = createjs.Sound.play("buttonPress");
+	// When the first sound finishes, play the next one
+    pressInstance.on("complete", () => {
+		_this.query_Bot.gotoAndStop("operating_lights");
+		_this.query_Bot.opLights.visible = true;
+		_this.query_Bot.opLights.gotoAndPlay(0);
+        _this.q1Sound = createjs.Sound.play("question1");
+			_this.q1Sound.on("complete", () => {
+				_this.query_Bot.gotoAndStop("qB_idle");
+				_this.query_Bot.opLights.visible = false;
+				_this.query_Bot.opLights.stop();
+				});
+	});
+    // Change dynamic text
+    _this.answButton_1.answer_1_text.text = "[ 24 ]";
+    _this.answButton_2.answer_2_text.text = "[ 6 ]";
+    _this.answButton_3.answer_3_text.text = "[ -2868 ]";
+    _this.answButton_4.answer_4_text.text = "[ 4 ]";
+    // Trigger animations
+    _this.qBox.gotoAndPlay("qBox_Start");
+    _this.answButton_1.gotoAndPlay("answ1_Start");
+    _this.answButton_2.gotoAndPlay("answ2_Start");
+    _this.answButton_3.gotoAndPlay("answ3_Start");
+    _this.answButton_4.gotoAndPlay("answ4_Start");
+	_this._this.query_Bot.scoreBrackets.start_button.gotoAndStop("score");
+		break;
+    //__________________________________________________________________________________________
+	// Answer buttons
+    case _this.answButton_1:
+    case _this.answButton_2:
+    case _this.answButton_3:
+    case _this.answButton_4:
+        let btnName = evt.currentTarget.name; // e.g. "answButton_1"
+
+        if (_this.answerKey[btnName]) {
+			//stop all sounds if correct answer is pressed
+			createjs.Sound.stop();
+			//Start Correct Answer Function 
+            handleCorrectAnswer(evt.currentTarget);
+        } else {
+			//stop all sounds if correct answer is pressed
+			createjs.Sound.stop();
+			//start Wrong Answer Functin
+            handleWrongAnswer(evt.currentTarget);
+        }
+		
+        break;
+	//__________________________________________________________________________________________
+	case _this.next_button:
+		_this.next_button.stop();
+	// Start button case (when kicking off Q1)
+_this.answeredQuestions = { q1:false, q2:false, q3:false };
+        //Check q1RA Audio, then turn off audio and opLights if next button is pressed early
+		if (_this.q1RA) {
+			_this.q1RA.stop();
+			_this.q1RA = null; // clear reference
+			_this.query_Bot.opLights.visible = false;
+			}
+		if ( _this.answerKey.answButton_4 == true){ 
+			QuestionTwo (evt.currentTarget);
+	    }
+	    else if (_this.answerKey.answButton_1 == true){
+			QuestionThree (evt.currentTarget);
+		}
+		break;
+	default:
+		console.log("No matching button action found");
+	}
+}
+
+	// STOP animation on release
+function handleUp() {
+  console.log("Released");
+  _this.buttonOne.gotoAndStop("star_idle");
+}
+
+	// Add event listeners to buttons
+this.buttonOne.on("pointerdown"&&"mousedown", handleDown.bind(this));
+this.buttonThree.on("pointerdown"&&"mousedown", handleDown.bind(this));
+this.query_Bot.scoreBrackets.start_button.on("pointerdown"&&"mousedown", handleDown.bind(this));
+this.answButton_1.on("pointerdown"&&"mousedown", handleDown.bind(this)); 
+this.answButton_2.on("pointerdown"&&"mousedown", handleDown.bind(this));
+this.answButton_3.on("pointerdown"&&"mousedown", handleDown.bind(this));
+this.answButton_4.on("pointerdown"&&"mousedown", handleDown.bind(this));
+this.next_button.on("pointerdown"&&"mousedown", handleDown.bind(this));
+
+	// ✅ Release listener on the window
+//window.addEventListener("pointerup", handleUp);
+this.buttonOne.addEventListener("mouseup", handleUp);
+this.buttonOne.addEventListener("pointerup", handleUp);
+window.addEventListener("pointerup", handleUp);
+
+//************************************************************************
+
+// BUTTON TWO CODE
+
+let boltRotate = this.buttonTwo.bolt_box;
+// Initial blur filter setup
+let blurFilter = new createjs.BlurFilter(0, 0, 1);
+boltRotate.filters = [blurFilter];
+boltRotate.cache(-100, -100, 190, 190); // adjust based on your shape size
+
+let isRotating = false;
+let rotationSpeed = 0;
+let decelTween = null;
+
+let loopInstance = null;
+let accelInstance = null;
+let accelCompleteListener = null;
+let isButtonTwoPressed = false;
+
+// Start rotating
+const startRotation = () => {
+  console.log("Start rotating");
+
+  // Stop previous sounds
+  if (loopInstance) loopInstance.stop();
+  if (accelInstance) {
+    accelInstance.off("complete", accelCompleteListener); // remove previous listener if any
+    accelInstance.stop();
+  }
+
+  // Play accel sound
+  accelInstance = createjs.Sound.play("accel");
+
+  // Save listener so we can remove it later
+  accelCompleteListener = () => {
+    loopInstance = createjs.Sound.play("accel_loop", { loop: -1 });
+  };
+  accelInstance.on("complete", accelCompleteListener);
+
+  // Cancel decel tween if running
+  if (decelTween) {
+    createjs.Tween.removeTweens({ value: rotationSpeed });
+    decelTween = null;
+  }
+
+  rotationSpeed = 0;
+  isRotating = true;
+};
+
+// Stop rotating and start deceleration
+const stopRotation = () => {
+  if (!isRotating) return; // prevent decel unless rotation actually started
+
+  console.log("Start deceleration");
+
+  // Stop all sounds
+  if (accelInstance) {
+    accelInstance.off("complete", accelCompleteListener);
+    accelInstance.stop();
+  }
+  if (loopInstance) loopInstance.stop();
+
+  // Play decel
+  createjs.Sound.play("decel");
+
+  isRotating = false;
+
+  let speedObj = { value: rotationSpeed };
+  decelTween = createjs.Tween.get(speedObj)
+    .to({ value: 0 }, 1000, createjs.Ease.quadOut)
+    .addEventListener("change", () => {
+      rotationSpeed = speedObj.value;
+    });
+};
+
+// Called every frame
+const tickHandler = () => {
+  if (isRotating) {
+    rotationSpeed += 0.4;
+    if (rotationSpeed > 40) rotationSpeed = 40;
+  }
+
+  if (rotationSpeed > 0.01) {
+    boltRotate.rotation += rotationSpeed;
+	   // Update blur based on speed (scale from 0 to 10 blur)
+    const blurAmount = Math.min(rotationSpeed / 2, 30);
+    blurFilter.blurX = blurAmount;
+    blurFilter.blurY = blurAmount;
+
+    // Re-cache to apply blur change
+    boltRotate.updateCache();
+  } else {
+    // Optional: Remove blur entirely when speed is very low
+    blurFilter.blurX = 0;
+    blurFilter.blurY = 0;
+    boltRotate.updateCache();
+  }
+
+  stage.update();
+};
+
+// 🟢 Only listen for pointerup/mouseup **on the button itself**
+// When pressing down on the button
+this.buttonTwo.addEventListener("pointerdown", (e) => {
+  isButtonTwoPressed = true;
+  startRotation();
+});
+
+this.buttonTwo.addEventListener("mousedown", (e) => {
+  isButtonTwoPressed = true;
+  startRotation();
+});
+
+// When releasing pointer/mouse/touch anywhere
+window.addEventListener("pointerup", () => {
+  if (isButtonTwoPressed) {
+    stopRotation();
+    isButtonTwoPressed = false;
+  }
+});
+
+window.addEventListener("mouseup", () => {
+  if (isButtonTwoPressed) {
+    stopRotation();
+    isButtonTwoPressed = false;
+  }
+});
+
+window.addEventListener("touchend", () => {
+  if (isButtonTwoPressed) {
+    stopRotation();
+    isButtonTwoPressed = false;
+  }
+});
+
+
+/************************************************************************
+// BUTTON THREE and Query-Bot CODE
+*************************************************************************/
+//Stops the timelines of buttonThree and Querybot on frame 1
+this.buttonThree.stop();
+this.query_Bot.stop(); 
+this.query_Bot.wrongEffect.stop();
+
+// Add event listeners to buttons
+this.buttonThree.addEventListener("pointerdown", handleDown);
+this.buttonThree.addEventListener("mousedown", handleDown);
+
+
+
+//************************************************************************
+
+
+// Ticker
+createjs.Ticker.framerate = 24;
+createjs.Ticker.addEventListener("tick", tickHandler);
+
+// Touch support
+createjs.Touch.enable(stage);
+
+/*************************************************************************
+Resize Canvas
+**************************************************************************/
+function resizeCanvas() {
+    var canvas = document.getElementById("canvas");
+    var stageWidth = window.innerWidth;
+    var stageHeight = window.innerHeight;
+    var designWidth = 720;
+    var designHeight = 1280;
+
+    // Maintain aspect ratio
+    var scale = Math.min(stageWidth / designWidth, stageHeight / designHeight);
+
+    // Resize canvas
+    canvas.width = designWidth * scale;
+    canvas.height = designHeight * scale;
+
+    // Scale stage
+    stage.scaleX = stage.scaleY = scale;
+
+    // Center canvas
+    canvas.style.position = "absolute";
+    canvas.style.left = (stageWidth - canvas.width) / 2 + "px";
+    canvas.style.top = (stageHeight - canvas.height) / 2 + "px";
+}
+
+// Call on load + resize
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('load', resizeCanvas);
